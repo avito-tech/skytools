@@ -292,6 +292,7 @@ class Replicator(pgq.SerialConsumer):
         self.seq_cache = SeqCache()
         self.maint_delay = self.cf.getint('maint_delay', 600)
         self.mirror_queue = self.cf.get('mirror_queue', '')
+        self.enable_undolog = self.options.enable_undolog
 
     def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
         "All work for a batch.  Entry point from SerialConsumer."
@@ -318,6 +319,9 @@ class Replicator(pgq.SerialConsumer):
         # the SerialConsumer can save last tick and commit.
 
         self.sync_database_encodings(src_db, dst_db)
+
+        if self.enable_undolog:
+            self.set_batch_info(batch_id, self.cur_batch_info, dst_db)
 
         self.handle_seqs(dst_curs)
         self.handle_events(dst_curs, ev_list)
@@ -733,7 +737,23 @@ class Replicator(pgq.SerialConsumer):
             q2 = "select londiste.subscriber_drop_table_fkey(%(from_table)s, %(fkey_name)s)"
             dst_curs.execute(q2, row)
             dst_db.commit()
-        
+
+    def set_batch_info(self, batch_id, cur_batch_info, dst_db):
+        # set session variable with batch and ticket information
+        dst_curs = dst_db.cursor()
+
+        batch_info = {'batch_id': batch_id}
+        for f in ['batch_start', 'batch_end', 'tick_id', 'prev_tick_id', 'consumer_name']:
+            batch_info[f] = cur_batch_info[f]
+
+        q = []
+        for k in batch_info.keys():
+            q.append("select set_config('londiste.{0}', %({0})s::text, true)".format(k))
+        q = ';'.join(q)
+
+        dst_curs.execute(q, batch_info)
+#        self.log.info('batch info: %d, %s, %s' % (batch_id, batch_info, dict(cur_batch_info)) )
+
 if __name__ == '__main__':
     script = Replicator(sys.argv[1:])
     script.start()

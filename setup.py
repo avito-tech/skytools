@@ -18,6 +18,7 @@ ac_ver = m.group(1)
 share_dup_files = [
    'sql/pgq/pgq.sql',
    'sql/londiste/londiste.sql',
+   'sql/londiste_undo/londiste_undo.sql',
    'sql/pgq_ext/pgq_ext.sql',
    'sql/logtriga/logtriga.sql',
 ]

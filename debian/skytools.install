@@ -1,0 +1,7 @@
+debian/tmp/usr/bin/*
+debian/tmp/usr/lib/python*/*-packages/londiste/*.py
+debian/tmp/usr/lib/python*/*-packages/pgq/*.py
+debian/tmp/usr/lib/python*/*-packages/skytools/*.py
+debian/tmp/usr/share/doc/skytools/conf
+debian/tmp/usr/share/man
+debian/tmp/usr/share/skytools

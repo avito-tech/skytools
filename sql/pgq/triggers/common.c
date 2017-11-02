@@ -29,6 +29,9 @@
 #include <utils/hsearch.h>
 #include <utils/syscache.h>
 #include <utils/rel.h>
+#if PG_VERSION_NUM >= 90400
+#include <access/htup_details.h>
+#endif
 #include "common.h"
 #include "stringutil.h"
 

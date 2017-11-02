@@ -65,6 +65,9 @@ create table londiste.subscriber_pending_triggers (
     table_name          text not null,
     trigger_name        text not null,
     trigger_def         text not null,
+    trigger_type        char not null,
     
     primary key (table_name, trigger_name)
 );
+comment on column londiste.subscriber_pending_triggers.trigger_type is
+'t — trigger, c - constraint trigger';

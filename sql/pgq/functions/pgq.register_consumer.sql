@@ -18,7 +18,7 @@ returns integer as $$
 --      1  - if new registration
 -- ----------------------------------------------------------------------
 begin
-    return pgq.register_consumer(x_queue_name, x_consumer_id, NULL);
+    return pgq.register_consumer(x_queue_name, x_consumer_id, NULL, false);
 end;
 $$ language plpgsql security definer;
 
@@ -26,7 +26,8 @@ $$ language plpgsql security definer;
 create or replace function pgq.register_consumer(
     x_queue_name text,
     x_consumer_name text,
-    x_tick_pos bigint)
+    x_tick_pos bigint,
+    x_force boolean)
 returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.register_consumer(3)
@@ -40,6 +41,7 @@ returns integer as $$
 --      x_queue_name        - Name of a queue
 --      x_consumer_name     - Name of consumer
 --      x_tick_pos          - Tick ID
+--      x_force             - Flag skip errors during registration when there is a sub_batch
 --
 -- Returns:
 --      0/1 whether consumer has already registered.
@@ -83,14 +85,18 @@ begin
           and sub_queue  = x_queue_id;
     if found then
         if x_tick_pos is not null then
-            if sub.sub_batch is not null then
+            if (sub.sub_batch is not null) and (not x_force) then
                 raise exception 'reposition while active not allowed';
             end if;
             -- update tick pos if requested
             update pgq.subscription
-                set sub_last_tick = x_tick_pos
-                where sub_consumer = x_consumer_id
-                  and sub_queue = x_queue_id;
+            set 
+                sub_last_tick = x_tick_pos,
+                sub_batch = null,
+                sub_next_tick = null
+            where 
+                sub_consumer = x_consumer_id and
+                sub_queue = x_queue_id;
         end if;
         -- already registered
         return 0;

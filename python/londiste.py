@@ -28,6 +28,8 @@ commands:
   provider add-seq SEQ ...      add sequence to provider
   provider remove-seq SEQ ...   remove sequence from provider
   provider seqs                 show all sequences on provider
+  provider curr-tick            show current tick on provider
+                                (for run undo on it)
 
   subscriber install            installs schema
   subscriber add TBL ...        add table to subscriber
@@ -38,12 +40,20 @@ commands:
   subscriber seqs               list sequences subscriber is interested
   subscriber missing            list tables subscriber has not yet attached to
   subscriber check              compare table structure on both sides
+  subscriber check-existing     compare table structure from subscriber table list
+  subscriber check-undo         all tables from subscriber table list must have
+                                enabled UNDO log
   subscriber resync TBL ...     do full copy again
   subscriber fkeys [pending|active]             show fkeys on tables           
   subscriber triggers [pending|active]          show triggers on tables
   subscriber restore-triggers TBL [TGNAME ..]   restore pending triggers
   subscriber register           register consumer on provider's queue
   subscriber unregister         unregister consumer on provider's queue
+  subscriber undo [TICK_ID]     rewind all tables with it UNDO log
+                                (curr-tick from provider by default)
+  subscriber add-undo-all       enable UNDO log on all tables
+  subscriber remove-undo-all    disable UNDO log on all tables
+  subscriber curr-tick          show applied tick on subscriber
 
   compare [TBL ...]             compare table contents on both sides
   repair [TBL ...]              repair data on subscriber
@@ -104,7 +114,7 @@ class Londiste(skytools.DBScript):
         g.add_option("--all", action="store_true",
                 help = "add: include all possible tables")
         g.add_option("--force", action="store_true",
-                help = "add: ignore table differences, repair: ignore lag")
+                help = "add: ignore table differences, repair: ignore lag, remove-undo-all: ignore missed triggers")
         g.add_option("--expect-sync", action="store_true", dest="expect_sync",
                 help = "add: no copy needed", default=False)
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
@@ -113,6 +123,12 @@ class Londiste(skytools.DBScript):
                 help = "replay: sync queue pos with subscriber")
         g.add_option("--reset", action="store_true",
                 help = "replay: forget queue pos on subscriber")
+        g.add_option("--enable-undolog", action="store_true", dest="enable_undolog",
+                help = "replay: generate UNDO log", default=False)
+        g.add_option("--dry-run", action="store_true", dest="dry_run",
+                help = "undo: do not commit on subscriber", default=False)
+        g.add_option("--skip-wait", action="store_true", dest="skip_wait",
+                help = "add-undo-all: do not wait for undo persistence", default=False)
         p.add_option_group(g)
 
         return p

@@ -3,7 +3,7 @@
 """Londiste setup and sanity checker.
 
 """
-import sys, os, skytools
+import sys, os, time, skytools
 from installer import *
 
 # support set() on 2.3
@@ -11,6 +11,13 @@ if 'set' not in __builtins__:
     from sets import Set as set
 
 __all__ = ['ProviderSetup', 'SubscriberSetup']
+
+def normalize_table_name(curs, table):
+    q_tbl_name = """select n.nspname, c.relname from pg_class c
+                    join pg_namespace n on c.relnamespace = n.oid
+                    where c.oid = %s::regclass"""
+    curs.execute(q_tbl_name, [table])
+    return curs.fetchone()
 
 def find_column_types(curs, table):
     table_oid = skytools.get_table_oid(curs, table)
@@ -27,8 +34,11 @@ def find_column_types(curs, table):
     q = """
         SELECT a.attname as name,
                CASE WHEN k.attname IS NOT NULL
-                    THEN 'k' ELSE 'v' END AS type
-          FROM pg_attribute a LEFT JOIN (%s) k ON (k.attname = a.attname)
+                    THEN 'k' ELSE 'v' END AS type,
+               format_type(a.atttypid, a.atttypmod) as rtype
+         FROM pg_attribute a
+            INNER JOIN pg_type t ON (t.oid = a.atttypid)
+            LEFT JOIN (%s) k ON (k.attname = a.attname)
          WHERE a.attrelid = %d AND a.attnum > 0 AND NOT a.attisdropped
          ORDER BY a.attnum
          """ % (key_sql, table_oid)
@@ -126,6 +136,25 @@ class CommonSetup(skytools.DBScript):
             self.log.error('Event queue does not exist yet')
             sys.exit(1)
 
+    def get_provider_trigger(self, table):
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        q = """ select
+                    p.queue_name as queue_name,
+                    p.table_name as table_name,
+                    p.trigger_name as trigger_name,
+                    string_to_array(encode(t.tgargs, 'escape'), E'\\\\000') as tgargs
+                from londiste.provider_table p
+                    left join pg_trigger t
+                        on (t.tgrelid = londiste.find_table_oid(p.table_name) and t.tgname::text = p.trigger_name)
+                where p.table_name = %s and p.queue_name = %s"""
+        src_curs.execute(q, [table, self.pgq_queue_name])
+
+        src_row = src_curs.fetchone()
+        src_db.commit()
+
+        return src_row
+
     def fetch_subscriber_tables(self, curs, pattern = '*'):
         q = "select * from londiste.subscriber_get_table_list(%s) where table_name ~ %s"
         curs.execute(q, [self.pgq_queue_name, glob2regex(pattern)])
@@ -141,6 +170,22 @@ class CommonSetup(skytools.DBScript):
             res.append(row['table_name'])
         return res
 
+    def get_subscriber_child_tables_list(self, parents):
+        q_func_name = "select londiste_undo.subscriber_child_tables_func(%s, %s)"
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        # TODO: read func_name from ini file?
+        dst_curs.execute(q_func_name, ['public', 'get_childs_for_undo'])
+        func_name = dst_curs.fetchone()[0]
+        res = []
+        if func_name:
+            for tbl in parents:
+                dst_curs.execute('select * from %s(%%s)' % func_name, [tbl])
+                for row in dst_curs.fetchall():
+                    res.append(row[0])
+        dst_db.commit()
+        return res
+
     def init_optparse(self, parser=None):
         p = skytools.DBScript.init_optparse(self, parser)
         p.add_option("--expect-sync", action="store_true", dest="expect_sync",
@@ -151,6 +196,10 @@ class CommonSetup(skytools.DBScript):
                     help="force", default=False)
         p.add_option("--all", action="store_true",
                     help="include all tables", default=False)
+        p.add_option("--dry-run", action="store_true", dest="dry_run",
+                help = "do not commit on subscriber", default=False)
+        p.add_option("--skip-wait", action="store_true", dest="skip_wait",
+                help = "do not wait for undo persistence", default=False)
         return p
 
 
@@ -176,6 +225,8 @@ class ProviderSetup(CommonSetup):
             self.provider_install()
         elif cmd == "seqs":
             self.provider_list_seqs()
+        elif cmd == "curr-tick":
+            self.provider_curr_tick()
         else:
             self.log.error('bad subcommand')
             sys.exit(1)
@@ -350,6 +401,18 @@ class ProviderSetup(CommonSetup):
         q = "select londiste.provider_remove_seq(%s, %s)"
         self.exec_provider(q, [self.pgq_queue_name, seq])
 
+    def provider_curr_tick(self):
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        q = "select last_tick from pgq.get_consumer_info(%s, %s)"
+
+        src_curs.execute(q, [self.pgq_queue_name, self.consumer_id])
+        last_tick = src_curs.fetchone()[0]
+
+        src_db.commit()
+
+        print last_tick
+
     def exec_provider(self, sql, args):
         src_db = self.get_database('provider_db')
         src_curs = src_db.cursor()
@@ -389,6 +452,13 @@ class SubscriberSetup(CommonSetup):
             self.subscriber_install()
         elif cmd == "check":
             self.check_tables(self.get_provider_table_list())
+        elif cmd == "check-existing":
+            ret = self.check_tables(self.get_subscriber_table_list())
+            sys.exit(ret)
+        elif cmd == "check-undo":
+            tables_res = self.check_tables_undo(self.get_subscriber_table_list())
+            londiste_res = self.check_londiste_undo()
+            sys.exit(tables_res or londiste_res)
         elif cmd in ["fkeys", "triggers"]:
             self.collect_meta(self.get_provider_table_list(), cmd, self.args[3:])
         elif cmd == "seqs":
@@ -399,6 +469,14 @@ class SubscriberSetup(CommonSetup):
             self.subscriber_remove_seq(self.args[3:])
         elif cmd == "restore-triggers":
             self.restore_triggers(self.args[3], self.args[4:])
+        elif cmd == "undo":
+            self.subscriber_undo(self.args[3:])
+        elif cmd == "add-undo-all":
+            self.subscriber_add_undo_all()
+        elif cmd == "remove-undo-all":
+            self.subscriber_remove_undo_all()
+        elif cmd == "curr-tick":
+            self.subscriber_curr_tick()
         else:
             self.log.error('bad subcommand: ' + cmd)
             sys.exit(1)
@@ -488,18 +566,64 @@ class SubscriberSetup(CommonSetup):
 
         failed = 0
         for tbl in table_list:
-            self.log.info('Checking %s' % tbl)
+            self.log.info("Checking '%s'" % tbl)
             if not skytools.exists_table(src_curs, tbl):
-                self.log.error('Table %s missing from provider side' % tbl)
+                self.log.warning("Table '%s' missing from provider side" % tbl)
                 failed += 1
             elif not skytools.exists_table(dst_curs, tbl):
-                self.log.error('Table %s missing from subscriber side' % tbl)
+                self.log.warning("Table '%s' missing from subscriber side" % tbl)
                 failed += 1
             else:
                 failed += self.check_table_columns(src_curs, dst_curs, tbl)
 
         src_db.commit()
         dst_db.commit()
+
+        return failed
+
+    def check_londiste_undo(self):
+        src_db = self.get_database('subscriber_db')
+        curs = src_db.cursor()
+
+        q = """
+        select
+            max(txtime) - min(txtime) < interval '1 day'
+        from londiste_undo.undo_log
+        """
+
+        curs.execute(q)
+        if curs.fetchone()[0]:
+            return 0
+
+        self.log.info("Minimum undo entry is too old")
+
+        return 1
+
+    def check_tables_undo(self, table_list):
+        src_db = self.get_database('subscriber_db')
+        src_curs = src_db.cursor()
+
+        q = """
+        select count(1) from pg_trigger
+        where tgname = 'xx99_londiste_undo'
+              and tgenabled = 'O'
+              and tgrelid = %s::regclass
+        """
+
+        failed = 0
+        for tbl in table_list:
+            # check metainformation
+            if not skytools.exists_undo_trigger(src_curs, tbl):
+                self.log.info("No undo for '%s'" % tbl)
+                failed += 1
+
+            # check real trigger
+            src_curs.execute(q, [tbl])
+            if src_curs.fetchone()[0] != 1:
+                self.log.info("No undo trigger for '%s'" % tbl)
+                failed += 1
+
+        src_db.commit()
 
         return failed
 
@@ -544,36 +668,77 @@ class SubscriberSetup(CommonSetup):
 
         src_cols = make_type_string(src_colrows)
         dst_cols = make_type_string(dst_colrows)
-        if src_cols.find('k') < 0:
-            self.log.error('provider table %s has no primary key (%s)' % (
-                             tbl, src_cols))
-            return 1
-        if dst_cols.find('k') < 0:
-            self.log.error('subscriber table %s has no primary key (%s)' % (
-                             tbl, dst_cols))
-            return 1
-
-        if src_cols != dst_cols:
-            self.log.warning('table %s structure is not same (%s/%s)'\
-                 ', trying to continue' % (tbl, src_cols, dst_cols))
 
         err = 0
-        for row in src_colrows:
-            found = 0
-            for row2 in dst_colrows:
-                if row2['name'] == row['name']:
-                    found = 1
-                    break
-            if not found:
+
+        if src_cols.find('k') < 0:
+            self.log.error("provider table '%s' has no primary key (%s)" % (
+                             tbl, src_cols))
+            err = 1
+        if dst_cols.find('k') < 0:
+            self.log.error("subscriber table '%s' has no primary key (%s)" % (
+                             tbl, dst_cols))
+            err = 1
+
+        trg = self.get_provider_trigger(tbl)
+
+        if trg:
+            if trg['tgargs'][1] != src_cols:
+                self.log.warning("table '%s' trigger '%s' has wrong schema '%s', required '%s'"
+                                 % (tbl, trg['trigger_name'], trg['tgargs'][1], src_cols))
                 err = 1
-                self.log.error('%s: column %s on provider not on subscriber'
-                                    % (tbl, row['name']))
-            elif row['type'] != row2['type']:
-                err = 1
-                self.log.error('%s: pk different on column %s'
-                                    % (tbl, row['name']))
+        else:
+            self.log.warning("table '%s' missed trigger" % tbl)
+            err = 1
+
+        if src_colrows != dst_colrows:
+            self.log.warning("table '%s' structure is not same" % tbl)
+            for src_col, dst_col in map(None, src_colrows, dst_colrows):
+                if src_col is None:
+                    self.log.warning("    column '%s' missed in provider table" % (dst_col['name']))
+                elif dst_col is None:
+                    self.log.warning("    column '%s' missed in subscriber table" % (src_col['name']))
+                else:
+                    if src_col['name'] != dst_col['name']:
+                        self.log.warning("    name mismatch '%s' in provider table, '%s' in subscriber table"
+                                         % (src_col['name'], dst_col['name']))
+                    if src_col['type'] != dst_col['type']:
+                        self.log.warning(
+                            "    internal type column '%s' mismatch "
+                            "- '%s' in provider table, '%s' in subscriber table"
+                            % (src_col['name'], src_col['type'], dst_col['type']))
+                    if src_col['rtype'] != dst_col['rtype']:
+                        self.log.warning(
+                            "    column '%s' type mismatch - '%s' in provider table, '%s' in subscriber table"
+                            % (src_col['name'], src_col['rtype'], dst_col['rtype']))
+
+            err = 1
 
         return err
+
+    def get_subscriber_undo_hooks(self):
+        q_subscriber_hooks = "select o_func from londiste_undo.subscriber_undo_hooks(%s)"
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        dst_curs.execute(q_subscriber_hooks, [self.consumer_id])
+        list = dst_curs.fetchall()
+        dst_db.commit()
+        res = []
+        for row in list:
+            res.append(row[0])
+        return res
+
+    def get_provider_undo_hooks(self):
+        q_provider_hooks = "select o_func from londiste_undo.provider_undo_hooks(%s)"
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        src_curs.execute(q_provider_hooks, [self.consumer_id])
+        list = src_curs.fetchall()
+        src_db.commit()
+        res = []
+        for row in list:
+            res.append(row[0])
+        return res
 
     def subscriber_install(self):
         dst_db = self.get_database('subscriber_db')
@@ -741,12 +906,20 @@ class SubscriberSetup(CommonSetup):
         dst_db.commit()
 
     def subscriber_add_one_table(self, dst_curs, tbl):
+        drop_triggers_type = ['c'] # drop only constraint triggers
         q_add = "select londiste.subscriber_add_table(%s, %s)"
-        q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s)"
+        q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s, %s)"
+        q_disable_undo = "select londiste_undo.disable_trigger(%s, %s)"
 
         if self.options.expect_sync and self.options.skip_truncate:
             self.log.error("Too many options: --expect-sync and --skip-truncate")
             sys.exit(1)
+
+        (schema_name, table_name) = normalize_table_name(dst_curs, tbl)
+
+        dst_curs.execute(q_disable_undo, [schema_name, table_name])
+        table_name = dst_curs.fetchone()[0]
+        self.log.info("Disabled UNDO trigger on %s" % table_name)
 
         dst_curs.execute(q_add, [self.pgq_queue_name, tbl])
         if self.options.expect_sync:
@@ -754,7 +927,7 @@ class SubscriberSetup(CommonSetup):
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
             return
 
-        dst_curs.execute(q_triggers, [tbl])
+        dst_curs.execute(q_triggers, [tbl, drop_triggers_type])
         if self.options.skip_truncate:
             q = "select londiste.subscriber_set_skip_truncate(%s, %s, true)"
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
@@ -762,11 +935,14 @@ class SubscriberSetup(CommonSetup):
     def subscriber_remove_one_table(self, tbl):
         q_remove = "select londiste.subscriber_remove_table(%s, %s)"
         q_triggers = "select londiste.subscriber_restore_all_table_triggers(%s)"
+        q_undo = "select londiste_undo.remove_trigger(%s, %s)"
 
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
+        (schema_name, table_name) = normalize_table_name(dst_curs, tbl)
         dst_curs.execute(q_remove, [self.pgq_queue_name, tbl])
         dst_curs.execute(q_triggers, [tbl])
+        dst_curs.execute(q_undo, [schema_name, table_name])
         dst_db.commit()
 
     def get_subscriber_seq_list(self):
@@ -836,3 +1012,203 @@ class SubscriberSetup(CommonSetup):
                 dst_curs.execute(q, [self.pgq_queue_name, seq])
         dst_db.commit()
 
+    def subscriber_undo(self, arg_list):
+        q_provider_tick = "select last_tick from pgq.get_consumer_info(%s, %s)"
+        q_undo = "select londiste_undo.run_undo(%s, %s, true)"
+        q_get_undo = "select * from londiste_undo.get_temp_applied_undo(%s, %s)"
+        q_save_applied_undo = "select londiste_undo.move_temp_to_applied()"
+        keep_tick_id = None
+        pidfile = self.cf.get("pidfile")
+        provider_undo_hooks = self.get_provider_undo_hooks()
+        subscriber_undo_hooks = self.get_subscriber_undo_hooks()
+        undo_fields = [
+            'id', 'txtime', 'consumer_name',
+            'dst_schema', 'dst_table',
+            'undo_cmd', 'cmd_data', 'cmd_pk'
+        ]
+        tmpl_q_provider_hook = "select %s (" \
+                               + ', '.join(['%%%%(%s)s' % f for f in undo_fields]) \
+                               + ") as res"
+
+        if not pidfile:
+            self.log.warning("No pidfile in config, cannot check for running londiste")
+        elif os.path.isfile(pidfile):
+            if skytools.signal_pidfile(pidfile, 0):
+                self.log.error("londiste (%s) already running, stop it first" % pidfile)
+                sys.exit(1)
+
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+
+        self.log.info("Last tick_id from subscriber: %d" % self.get_subscriber_curr_tick())
+
+        if len(arg_list) == 0:
+            src_curs.execute(q_provider_tick, [self.pgq_queue_name, self.consumer_id])
+            last_tick = src_curs.fetchone()[0]
+            src_db.commit()
+            keep_tick_id = last_tick
+            self.log.info("Using tick_id from master: %d" % keep_tick_id)
+        else:
+            keep_tick_id = int(arg_list[0])
+
+        self.log.info('Run undo till tick_id: %d' % keep_tick_id)
+
+        if subscriber_undo_hooks:
+            self.log.info('Subscriber undo hooks: %s' % subscriber_undo_hooks)
+
+        dst_curs.execute(q_undo, [self.consumer_id, keep_tick_id])
+        cnt = dst_curs.fetchone()[0]
+        for msg in dst_db.notices:
+            self.log.info("PG %s" % msg.rstrip())
+        self.log.info("Undo %s rows" % cnt)
+
+        if provider_undo_hooks:
+            self.log.info('Provider undo hooks: %s' % provider_undo_hooks)
+            # londiste is switch off now, so hook result will be played after it started
+            # (and after undo is compleated)
+            dst_curs.execute(q_get_undo, [self.consumer_id, keep_tick_id])
+            self.log.debug("%s: %d" % (dst_curs.query, dst_curs.rowcount))
+            for row in dst_curs:
+                for hook_name in provider_undo_hooks:
+                    hook = tmpl_q_provider_hook % hook_name
+                    src_curs.execute(hook, row)
+                    for msg in src_db.notices:
+                        self.log.info("PG provider %s" % msg.rstrip())
+                    del src_db.notices[:]
+            # provider _must_ be commited first, we can call hooks again,
+            # but not after subscriber undo commited
+            src_db.commit()
+
+        dst_curs.execute(q_save_applied_undo)
+
+        if self.options.dry_run:
+            dst_db.rollback()
+        else:
+            dst_db.commit()
+
+    def subscriber_add_undo_all(self):
+        subscriber_tables = self.get_subscriber_table_list()
+        subscriber_child_tables = self.get_subscriber_child_tables_list(subscriber_tables)
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        q_add_undo = "select londiste_undo.enable_trigger(%s, %s, %s, %s)"
+        q_lock_consumer = "lock londiste.completed"
+
+        self.log.info("Lock consumer ...")
+        dst_curs.execute(q_lock_consumer)
+        self.log.info("ok")
+
+        for tbl in subscriber_tables + subscriber_child_tables:
+            (schema_name, table_name) = normalize_table_name(dst_curs, tbl)
+            cols_info = find_column_types(dst_curs, tbl)
+
+            pk = filter(lambda x: x[1] == 'k', cols_info)
+
+            if len(pk) != 1:
+                self.log.error("Unknown PK for %s.%s" % (schema_name, table_name))
+                sys.exit(1)
+            pk = pk[0][0]
+
+            is_child = 'CHILD ' if tbl in subscriber_child_tables else ''
+
+            self.log.info("Adding UNDO trigger on %s%s.%s(%s)" % (is_child, schema_name, table_name, pk))
+            dst_curs.execute(q_add_undo, [self.consumer_id, schema_name, table_name, pk])
+
+        dst_db.commit()
+
+        if not self.options.skip_wait:
+            self.wait_undo_enough()
+
+    def subscriber_remove_undo_all(self):
+        subscriber_tables = self.get_subscriber_table_list()
+        subscriber_child_tables = self.get_subscriber_child_tables_list(subscriber_tables)
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        q_clean_all_undo = "select londiste_undo.clean_all_undo()"
+        q_remove_undo = "select londiste_undo.remove_trigger(%s, %s, %s)"
+        q_lock_consumer = "lock londiste.completed"
+        force = False
+
+        self.log.info("Lock consumer ...")
+        dst_curs.execute(q_lock_consumer)
+        self.log.info("ok")
+
+        dst_curs.execute(q_clean_all_undo)
+        self.log.info("All UNDO cleaned")
+
+        if self.options.force:
+            self.log.warning('--force used, ignoring non exists triggers')
+            force = True
+
+        for tbl in subscriber_tables + subscriber_child_tables:
+            (schema_name, table_name) = normalize_table_name(dst_curs, tbl)
+
+            is_child = 'CHILD ' if tbl in subscriber_child_tables else ''
+
+            self.log.info("Removing UNDO trigger on %s%s.%s" % (is_child, schema_name, table_name))
+            dst_curs.execute(q_remove_undo, [schema_name, table_name, force])
+
+        for msg in dst_db.notices:
+            self.log.info("PG %s" % msg.rstrip())
+
+        dst_db.commit()
+
+    def get_subscriber_curr_tick(self):
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        q = "select londiste.get_last_tick(%s)"
+
+        dst_curs.execute(q, [self.consumer_id])
+        last_tick = dst_curs.fetchone()[0]
+
+        dst_db.commit()
+
+        return last_tick
+
+    def subscriber_curr_tick(self):
+        print self.get_subscriber_curr_tick()
+
+    def wait_undo_enough(self):
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        stdb_db = self.get_database('provider_standby_db')
+        stdb_curs = stdb_db.cursor()
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+
+        q_src_last_tick = "select last_tick from pgq.get_consumer_info(%s, %s)"
+        q_dst_last_tick = "select londiste.get_last_tick(%s)"
+
+        src_curs.execute(q_src_last_tick, [self.pgq_queue_name, self.consumer_id])
+        last_tick = src_curs.fetchone()[0]
+        src_db.commit()
+
+        stdb_curs.execute(q_src_last_tick, [self.pgq_queue_name, self.consumer_id])
+        stdb_last_tick = stdb_curs.fetchone()[0]
+        stdb_db.commit()
+
+        self.log.info("Wait tick %s on standby (curr: %s)..." % (last_tick, stdb_last_tick))
+        [h.flush() for h in self.log.handlers]
+
+        while stdb_last_tick < last_tick:
+            time.sleep(5)
+            stdb_curs.execute(q_src_last_tick, [self.pgq_queue_name, self.consumer_id])
+            stdb_last_tick = stdb_curs.fetchone()[0]
+            stdb_db.commit()
+
+        dst_curs.execute(q_dst_last_tick, [self.consumer_id])
+        dst_last_tick = dst_curs.fetchone()[0]
+        dst_db.commit()
+
+        self.log.info("OK, wait tick %s on subscriber (curr: %s)..." % (last_tick, dst_last_tick))
+        [h.flush() for h in self.log.handlers]
+
+        while dst_last_tick < last_tick:
+            time.sleep(5)
+            dst_curs.execute(q_dst_last_tick, [self.consumer_id])
+            dst_last_tick = dst_curs.fetchone()[0]
+            dst_db.commit()
+
+        self.log.info("OK, undo stored persistently and available for undo till %s tick" % (last_tick))

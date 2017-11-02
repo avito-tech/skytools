@@ -1,0 +1,9 @@
+skytools source for Debian
+---------------------------------
+
+  * Originally, source code had debian directory that were removed.
+    The debian directory was used to build packaging pgbouncer with
+    yada.
+
+  -- Fernando Ike de Oliveira <fike@midstorm.org>  Thu, 05 Mar 2009
+  17:27:19 -0300

@@ -1,0 +1,102 @@
+Source: skytools
+Maintainer: Christoph Berg <myon@debian.org>
+Section: database
+Priority: optional
+Standards-Version: 3.9.3
+Build-Depends: python-all-dev, postgresql-server-dev-all (>= 119~), debhelper (>= 7.0.50~), dh-python, xmlto, asciidoc
+Homepage: http://wiki.postgresql.org/wiki/Skytools
+Vcs-Svn: svn://svn.debian.org/pkg-postgresql/trunk/skytools/
+Vcs-Browser: http://svn.debian.org/wsvn/pkg-postgresql/trunk/skytools/
+
+Package: skytools
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python-psycopg2
+Recommends: skytools-modules
+# /usr/share/skytools moved here
+Replaces: skytools-modules-8.4 (<< 2.1.12)
+Description: Database management tools for PostgreSQL
+ Skytools is a set of PostgreSQL tools for WAL shipping, queueing and
+ replication.
+ .
+ This package contains the Python parts of skytools:
+  - londiste: PostgreSQL replication engine written
+    Python, using PgQ as event transport
+  - pgqadm: PgQ queueing administration interface
+  - walmgr: Managing WAL-based replication
+
+Package: skytools-modules-9.2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-9.2
+Provides: skytools-modules
+Conflicts: postgresql-9.2-pgq3
+Replaces: postgresql-9.2-pgq3
+Description: PostgreSQL 9.2 modules for skytools
+ Skytools is a set of PostgreSQL tools for WAL shipping, queueing and
+ replication.
+ .
+ This package contains the PostgreSQL modules for skytools:
+  - txid: Provides 8-byte transaction ids for external usage
+  - logtriga: Trigger function for table event logging in "partial SQL"
+    format, used in londsite for replication
+  - logutriga: Trigger function for table event logging in
+    urlencoded format
+  - londiste: Database parts of replication engine
+  - pgq: Generic queue in database
+
+Package: skytools-modules-9.4
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-9.4
+Provides: skytools-modules
+Conflicts: postgresql-9.4-pgq3
+Replaces: postgresql-9.4-pgq3
+Description: PostgreSQL 9.4 modules for skytools
+ Skytools is a set of PostgreSQL tools for WAL shipping, queueing and
+ replication.
+ .
+ This package contains the PostgreSQL modules for skytools:
+  - txid: Provides 8-byte transaction ids for external usage
+  - logtriga: Trigger function for table event logging in "partial SQL"
+    format, used in londsite for replication
+  - logutriga: Trigger function for table event logging in
+    urlencoded format
+  - londiste: Database parts of replication engine
+  - pgq: Generic queue in database
+
+Package: skytools-modules-9.5
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-9.5
+Provides: skytools-modules
+Conflicts: postgresql-9.5-pgq3
+Replaces: postgresql-9.5-pgq3
+Description: PostgreSQL 9.5 modules for skytools
+ Skytools is a set of PostgreSQL tools for WAL shipping, queueing and
+ replication.
+ .
+ This package contains the PostgreSQL modules for skytools:
+  - txid: Provides 8-byte transaction ids for external usage
+  - logtriga: Trigger function for table event logging in "partial SQL"
+    format, used in londsite for replication
+  - logutriga: Trigger function for table event logging in
+    urlencoded format
+  - londiste: Database parts of replication engine
+  - pgq: Generic queue in database
+
+Package: skytools-modules-9.6
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-9.6
+Provides: skytools-modules
+Conflicts: postgresql-9.6-pgq3
+Replaces: postgresql-9.6-pgq3
+Description: PostgreSQL 9.6 modules for skytools
+ Skytools is a set of PostgreSQL tools for WAL shipping, queueing and
+ replication.
+ .
+ This package contains the PostgreSQL modules for skytools:
+  - txid: Provides 8-byte transaction ids for external usage
+  - logtriga: Trigger function for table event logging in "partial SQL"
+    format, used in londsite for replication
+  - logutriga: Trigger function for table event logging in
+    urlencoded format
+  - londiste: Database parts of replication engine
+  - pgq: Generic queue in database
+

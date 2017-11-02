@@ -1,0 +1,637 @@
+set client_min_messages = 'warning';
+\pset null <NULL>
+--select londiste_undo.remove_trigger('public', 'undo_test');
+create table undo_test (id integer primary key, v text, r float);
+select londiste_undo.enable_trigger('londiste_test', 'public', 'undo_test', 'id');
+  enable_trigger  
+------------------
+ public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | t
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+select londiste_undo.disable_trigger('public', 'undo_test');
+ disable_trigger  
+------------------
+ public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | f
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Disabled triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+select londiste_undo.remove_trigger('public', 'undo_test');
+ remove_trigger 
+----------------
+ 
+(1 row)
+
+table londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table | trg_name | is_active | last_update_txtime 
+---------------+------------+-----------+----------+-----------+--------------------
+(0 rows)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+
+select londiste_undo.add_trigger('londiste_test', 'public', 'undo_test', 'id');
+ add_trigger 
+-------------
+ 
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | t
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+select londiste_undo.disable_trigger('public', 'undo_test');
+ disable_trigger  
+------------------
+ public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | f
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Disabled triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+select londiste_undo.enable_trigger('londiste_test', 'public', 'undo_test');
+  enable_trigger  
+------------------
+ public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | t
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+do $$
+begin
+  begin
+    perform londiste_undo.all_triggers(null, null);
+    raise warning '*** TEST ERROR';
+  exception when others then
+    raise warning '*** TEST EXCEPTION: (%) (%)',  SQLSTATE, SQLERRM;
+  end;
+  begin
+    perform londiste_undo.all_triggers('', null);
+    raise warning '*** TEST ERROR';
+  exception when others then
+    raise warning '*** TEST EXCEPTION: (%) (%)',  SQLSTATE, SQLERRM;
+  end;
+  begin
+    perform londiste_undo.all_triggers('', 'enable');
+    raise warning '*** TEST ERROR';
+  exception when others then
+    raise warning '*** TEST EXCEPTION: (%) (%)',  SQLSTATE, SQLERRM;
+  end;
+  begin
+    perform londiste_undo.all_triggers('londiste_test', null);
+    raise warning '*** TEST ERROR';
+  exception when others then
+    raise warning '*** TEST EXCEPTION: (%) (%)',  SQLSTATE, SQLERRM;
+  end;
+  begin
+    perform londiste_undo.all_triggers('londiste_test', '');
+    raise warning '*** TEST ERROR';
+  exception when others then
+    raise warning '*** TEST EXCEPTION: (%) (%)',  SQLSTATE, SQLERRM;
+  end;
+  begin
+    perform londiste_undo.all_triggers('londiste_test', 'xxx');
+    raise warning '*** TEST ERROR';
+  exception when others then
+    raise warning '*** TEST EXCEPTION: (%) (%)',  SQLSTATE, SQLERRM;
+  end;
+end
+$$;
+WARNING:  *** TEST EXCEPTION: (P0001) (all_triggers: consumer name must be set "<NULL>")
+WARNING:  *** TEST EXCEPTION: (P0001) (all_triggers: consumer name must be set "")
+WARNING:  *** TEST EXCEPTION: (P0001) (all_triggers: consumer name must be set "")
+WARNING:  *** TEST EXCEPTION: (P0001) (all_triggers: unknown command "<NULL>")
+WARNING:  *** TEST EXCEPTION: (P0001) (all_triggers: unknown command "")
+WARNING:  *** TEST EXCEPTION: (P0001) (all_triggers: unknown command "xxx")
+select londiste_undo.all_triggers('londiste_test', 'enable');
+       all_triggers       
+--------------------------
+ enable: public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | t
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+select londiste_undo.all_triggers('londiste_test', 'disable');
+       all_triggers        
+---------------------------
+ disable: public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | f
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Disabled triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+select londiste_undo.all_triggers('londiste_test', 'enable');
+       all_triggers       
+--------------------------
+ enable: public.undo_test
+(1 row)
+
+select consumer_name, dst_schema, dst_table, trg_name, is_active from londiste_undo.triggers;
+ consumer_name | dst_schema | dst_table |      trg_name      | is_active 
+---------------+------------+-----------+--------------------+-----------
+ londiste_test | public     | undo_test | xx99_londiste_undo | t
+(1 row)
+
+\d undo_test
+       Table "public.undo_test"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ id     | integer          | not null
+ v      | text             | 
+ r      | double precision | 
+Indexes:
+    "undo_test_pkey" PRIMARY KEY, btree (id)
+Triggers:
+    xx99_londiste_undo AFTER INSERT OR DELETE OR UPDATE ON undo_test FOR EACH ROW EXECUTE PROCEDURE londiste_undo.undo_trg('id')
+
+-- truncate londiste_undo.undo_log, undo_test restart identity;
+table londiste_undo.undo_log;
+ id | txtime | consumer_name | batch_id | batch_start | batch_end | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd | cmd_data | cmd_pk 
+----+--------+---------------+----------+-------------+-----------+---------+--------------+------------+-----------+----------+----------+--------
+(0 rows)
+
+table londiste_undo.applied_undo_log;
+ id | txtime | consumer_name | batch_id | batch_start | batch_end | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd | cmd_data | cmd_pk | apply_txtime 
+----+--------+---------------+----------+-------------+-----------+---------+--------------+------------+-----------+----------+----------+--------+--------------
+(0 rows)
+
+begin; --- tick id 5586
+select londiste.set_last_tick('londiste_test', 5586);
+ set_last_tick 
+---------------
+             1
+(1 row)
+
+--- установка переменных которые выставляет наш патченный londiste
+select set_config('londiste.tick_id', 5586::text, true);
+ set_config 
+------------
+ 5586
+(1 row)
+
+select set_config('londiste.prev_tick_id', 5585::text, true);
+ set_config 
+------------
+ 5585
+(1 row)
+
+select set_config('londiste.batch_end', '2014-10-24T17:13:49.391251+04:00'::timestamptz::text, true);
+             set_config              
+-------------------------------------
+ Fri Oct 24 06:13:49.391251 2014 PDT
+(1 row)
+
+select set_config('londiste.batch_id', 114924310::text, true);
+ set_config 
+------------
+ 114924310
+(1 row)
+
+select set_config('londiste.consumer_name', E'londiste_test'::text, true);
+  set_config   
+---------------
+ londiste_test
+(1 row)
+
+select set_config('londiste.batch_start', '2014-10-24T17:14:40.477007+04:00'::timestamptz::text, true);
+             set_config              
+-------------------------------------
+ Fri Oct 24 06:14:40.477007 2014 PDT
+(1 row)
+
+--- эмуляция проигрывание событий londiste
+insert into undo_test values (10, 'one 10', 1./3.);
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd | cmd_data |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+----------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>   | "id"=>"10"
+(1 row)
+
+update undo_test set v = v || ' 20' where id = 10;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |   cmd_data    |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+---------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>        | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10" | "id"=>"10"
+(2 rows)
+
+delete from undo_test where id = 10;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+(3 rows)
+
+insert into undo_test values (10, 'one 22', 11./33.);
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+(4 rows)
+
+table undo_test;
+ id |   v    |         r         
+----+--------+-------------------
+ 10 | one 22 | 0.333333333333333
+(1 row)
+
+commit;
+begin; --- tick id 5587
+select londiste.set_last_tick('londiste_test', 5587);
+ set_last_tick 
+---------------
+             1
+(1 row)
+
+--- установка переменных которые выставляет наш патченный londiste
+select set_config('londiste.tick_id', 5587::text, true);
+ set_config 
+------------
+ 5587
+(1 row)
+
+select set_config('londiste.prev_tick_id', 5586::text, true);
+ set_config 
+------------
+ 5586
+(1 row)
+
+select set_config('londiste.batch_end', '2014-10-24T17:14:49.477007+04:00'::timestamptz::text, true);
+             set_config              
+-------------------------------------
+ Fri Oct 24 06:14:49.477007 2014 PDT
+(1 row)
+
+select set_config('londiste.batch_id', 114924317::text, true);
+ set_config 
+------------
+ 114924317
+(1 row)
+
+select set_config('londiste.consumer_name', E'londiste_test'::text, true);
+  set_config   
+---------------
+ londiste_test
+(1 row)
+
+select set_config('londiste.batch_start', '2014-10-24T17:13:49.391251+04:00'::timestamptz::text, true);
+             set_config              
+-------------------------------------
+ Fri Oct 24 06:13:49.391251 2014 PDT
+(1 row)
+
+--- эмуляция проигрывание событий londiste
+insert into undo_test values (1, 'one', 1./3.);
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+(5 rows)
+
+update undo_test set r = r + 10 where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+(6 rows)
+
+update undo_test set r = r + 20, v = v || ' f1' where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+(7 rows)
+
+update undo_test set r = r + 20, v = null where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1"                 | "id"=>"1"
+(8 rows)
+
+update undo_test set r = null, v = 'xxx' where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1"                 | "id"=>"1"
+  9 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"50.3333333333333", "v"=>NULL                     | "id"=>"1"
+(9 rows)
+
+update undo_test set r = null, v = null where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1"                 | "id"=>"1"
+  9 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"50.3333333333333", "v"=>NULL                     | "id"=>"1"
+ 10 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "v"=>"xxx"                                             | "id"=>"1"
+(10 rows)
+
+update undo_test set r = 123, v = '321' where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1"                 | "id"=>"1"
+  9 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"50.3333333333333", "v"=>NULL                     | "id"=>"1"
+ 10 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "v"=>"xxx"                                             | "id"=>"1"
+ 11 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>NULL, "v"=>NULL                                   | "id"=>"1"
+(11 rows)
+
+delete from undo_test where id = 1;
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1"                 | "id"=>"1"
+  9 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"50.3333333333333", "v"=>NULL                     | "id"=>"1"
+ 10 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "v"=>"xxx"                                             | "id"=>"1"
+ 11 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>NULL, "v"=>NULL                                   | "id"=>"1"
+ 12 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | I        | "r"=>"123", "v"=>"321", "id"=>"1"                      | <NULL>
+(12 rows)
+
+insert into undo_test values (1, 'one', 11./33.);
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"                               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"                    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1"                 | "id"=>"1"
+  9 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"50.3333333333333", "v"=>NULL                     | "id"=>"1"
+ 10 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "v"=>"xxx"                                             | "id"=>"1"
+ 11 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>NULL, "v"=>NULL                                   | "id"=>"1"
+ 12 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | I        | "r"=>"123", "v"=>"321", "id"=>"1"                      | <NULL>
+ 13 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                                 | "id"=>"1"
+(13 rows)
+
+table undo_test;
+ id |   v    |         r         
+----+--------+-------------------
+ 10 | one 22 | 0.333333333333333
+  1 | one    | 0.333333333333333
+(2 rows)
+
+commit;
+set client_min_messages = 'notice';
+select londiste_undo.run_undo('londiste_test', 5586);
+NOTICE:  set 'londiste_test' last_tick_id to 5586
+NOTICE:  disable all UNDO triggers
+NOTICE:  locking public.undo_test ...
+NOTICE:  disable triggers public.undo_test
+NOTICE:  hooks query: "<NULL>"
+NOTICE:  enable triggers public.undo_test
+NOTICE:  enable all UNDO triggers
+ run_undo 
+----------
+        9
+(1 row)
+
+set client_min_messages = 'warning';
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                        cmd_data                        |   cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+--------------------------------------------------------+------------
+  1 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+  2 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | U        | "v"=>"one 10"                                          | "id"=>"10"
+  3 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | I        | "r"=>"0.333333333333333", "v"=>"one 10 20", "id"=>"10" | <NULL>
+  4 | londiste_test | 114924310 | Fri Oct 24 06:14:40.477007 2014 PDT | Fri Oct 24 06:13:49.391251 2014 PDT |    5586 |         5585 | public     | undo_test | D        | <NULL>                                                 | "id"=>"10"
+(4 rows)
+
+select id, consumer_name, batch_id, batch_start, batch_end, tick_id, prev_tick_id,
+       dst_schema, dst_table, undo_cmd, cmd_data, cmd_pk
+from londiste_undo.applied_undo_log;
+ id | consumer_name | batch_id  |             batch_start             |              batch_end              | tick_id | prev_tick_id | dst_schema | dst_table | undo_cmd |                cmd_data                |  cmd_pk   
+----+---------------+-----------+-------------------------------------+-------------------------------------+---------+--------------+------------+-----------+----------+----------------------------------------+-----------
+  5 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                 | "id"=>"1"
+  6 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"0.333333333333333"               | "id"=>"1"
+  7 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"10.3333333333333", "v"=>"one"    | "id"=>"1"
+  8 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"30.3333333333333", "v"=>"one f1" | "id"=>"1"
+  9 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>"50.3333333333333", "v"=>NULL     | "id"=>"1"
+ 10 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "v"=>"xxx"                             | "id"=>"1"
+ 11 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | U        | "r"=>NULL, "v"=>NULL                   | "id"=>"1"
+ 12 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | I        | "r"=>"123", "v"=>"321", "id"=>"1"      | <NULL>
+ 13 | londiste_test | 114924317 | Fri Oct 24 06:13:49.391251 2014 PDT | Fri Oct 24 06:14:49.477007 2014 PDT |    5587 |         5586 | public     | undo_test | D        | <NULL>                                 | "id"=>"1"
+(9 rows)
+
+table undo_test;
+ id |   v    |         r         
+----+--------+-------------------
+ 10 | one 22 | 0.333333333333333
+(1 row)
+
+select pg_sleep(2);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+set client_min_messages = 'debug1';
+select londiste_undo.x_rotate_undolog(i_keep_log_time := '1 second');
+DEBUG:  londiste_undo.x_rotate_undolog: size 24 kB, count 4 -> 0, delete 4
+ x_rotate_undolog 
+------------------
+                4
+(1 row)
+
+set client_min_messages = 'warning';

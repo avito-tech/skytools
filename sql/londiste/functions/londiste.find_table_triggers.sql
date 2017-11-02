@@ -10,7 +10,8 @@ begin
 
     if ver >= 90000 then
         for tg in
-            select n.nspname || '.' || c.relname as table_name, t.tgname::text as name, pg_get_triggerdef(t.oid) as def 
+            select n.nspname || '.' || c.relname as table_name, t.tgname::text as name, pg_get_triggerdef(t.oid) as def,
+                (case when t.tgconstraint > 0 then 'c' else 't' end)::char as trigger_type
             from pg_trigger t, pg_class c, pg_namespace n
             where n.oid = c.relnamespace and c.oid = t.tgrelid
                 and t.tgrelid = londiste.find_table_oid(i_table_name)
@@ -20,7 +21,8 @@ begin
         end loop;
     else
         for tg in
-            select n.nspname || '.' || c.relname as table_name, t.tgname::text as name, pg_get_triggerdef(t.oid) as def 
+            select n.nspname || '.' || c.relname as table_name, t.tgname::text as name, pg_get_triggerdef(t.oid) as def,
+                't'::char as trigger_type
             from pg_trigger t, pg_class c, pg_namespace n
             where n.oid = c.relnamespace and c.oid = t.tgrelid
                 and t.tgrelid = londiste.find_table_oid(i_table_name)

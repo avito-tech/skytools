@@ -1,0 +1,3 @@
+debian/tmp/usr/lib/postgresql/9.5/lib/*
+debian/tmp/usr/share/postgresql/9.5/contrib/*
+debian/tmp/usr/share/doc/postgresql-doc-9.5/contrib/README.* usr/share/doc/skytools-modules-9.5

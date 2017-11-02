@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+case $1 in
+	configure)
+		if dpkg --compare-versions "$2" lt "2.1.12-2"; then
+			for I in londiste scriptmgr queue_mover queue_splitter walmgr ; do
+				update-alternatives --install /usr/bin/$I $I /usr/bin/${I}2 2 \
+					--slave /usr/share/man/man1/$I.1.gz $I.1 /usr/share/man/man1/${I}2.1.gz || exit 1
+			done
+		fi ;;
+esac
+
+#DEBHELPER#

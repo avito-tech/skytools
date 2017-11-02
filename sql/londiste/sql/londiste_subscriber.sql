@@ -100,7 +100,7 @@ create trigger tg_nop after insert on tgtest for each row execute procedure notg
 select * from londiste.find_table_triggers('tgtest');
 select * from londiste.subscriber_get_table_pending_triggers('tgtest');
 
-select * from londiste.subscriber_drop_all_table_triggers('tgtest');
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['t']);
 
 select * from londiste.find_table_triggers('tgtest');
 select * from londiste.subscriber_get_table_pending_triggers('tgtest');
@@ -110,3 +110,45 @@ select * from londiste.subscriber_restore_all_table_triggers('tgtest');
 select * from londiste.find_table_triggers('tgtest');
 select * from londiste.subscriber_get_table_pending_triggers('tgtest');
 
+-- test constraint triggers
+
+create constraint trigger tg_nop1 after insert on tgtest deferrable initially deferred for each row execute procedure notg();
+create constraint trigger tg_nop2 after update on tgtest deferrable initially immediate for each row execute procedure notg();
+create constraint trigger tg_nop3 after delete on tgtest not deferrable initially immediate for each row execute procedure notg();
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['t']);
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+--
+
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['c']);
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+--
+
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['t', 'c']);
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');

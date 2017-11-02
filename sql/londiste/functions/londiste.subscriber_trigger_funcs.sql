@@ -30,9 +30,9 @@ begin
         return 0;
     end if;
     
-    insert into londiste.subscriber_pending_triggers(table_name, trigger_name, trigger_def) 
-        values (i_table_name, i_trigger_name, trig_def.trigger_def);
-    
+    insert into londiste.subscriber_pending_triggers(table_name, trigger_name, trigger_def, trigger_type)
+        values (i_table_name, i_trigger_name, trig_def.trigger_def, trig_def.trigger_type);
+
     execute 'drop trigger ' || quote_ident(i_trigger_name)
         || ' on ' || londiste.quote_fqname(i_table_name);
     
@@ -41,7 +41,7 @@ end;
 $$ language plpgsql;
 
 
-create or replace function londiste.subscriber_drop_all_table_triggers(i_table_name text)
+create or replace function londiste.subscriber_drop_all_table_triggers(i_table_name text, i_trigger_types char[])
 returns integer as $$
 declare
     trigger record;
@@ -49,6 +49,7 @@ begin
     for trigger in
         select trigger_name as name
         from londiste.find_table_triggers(i_table_name)
+        where trigger_type = any (i_trigger_types)
     loop
         perform londiste.subscriber_drop_table_trigger(i_table_name, trigger.name);
     end loop;

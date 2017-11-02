@@ -98,6 +98,9 @@ class TConstraint(TElem):
             self.type += T_PKEY
 
     def get_create_sql(self, curs, new_table_name=None):
+        # constraint trigger created by CREATE CONSTRAINT TRIGGER
+        if self.contype == 't':
+            return None
         # no ONLY here as table with childs (only case that matters)
         # cannot have contraints that childs do not have
         fmt = "ALTER TABLE %s ADD CONSTRAINT %s %s;"
@@ -116,6 +119,9 @@ class TConstraint(TElem):
         return sql
 
     def get_drop_sql(self, curs):
+        # constraint trigger droped by DROP TRIGGER
+        if self.contype == 't':
+            return None
         fmt = "ALTER TABLE ONLY %s DROP CONSTRAINT %s;"
         sql = fmt % (quote_fqident(self.table_name), quote_ident(self.name))
         return sql

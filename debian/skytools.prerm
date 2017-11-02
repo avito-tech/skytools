@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+case $1 in
+	remove)
+		for I in londiste scriptmgr queue_mover queue_splitter walmgr ; do
+			update-alternatives --remove $I /usr/bin/${I}2 || exit 1 ;
+		done ;;
+esac
+
+#DEBHELPER#

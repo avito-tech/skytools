@@ -9,12 +9,14 @@ provider_object_list = [
     skytools.DBLanguage("plpgsql"),
     skytools.DBFunction('txid_current_snapshot', 0, sql_file = "txid.sql"),
     skytools.DBSchema('pgq', sql_file = "pgq.sql"),
-    skytools.DBSchema('londiste', sql_file = "londiste.sql")
+    skytools.DBSchema('londiste', sql_file = "londiste.sql"),
+    skytools.DBSchema('londiste_undo', sql_file = "londiste_undo.sql")
 ]
 
 subscriber_object_list = [
     skytools.DBLanguage("plpgsql"),
-    skytools.DBSchema('londiste', sql_file = "londiste.sql")
+    skytools.DBSchema('londiste', sql_file = "londiste.sql"),
+    skytools.DBSchema('londiste_undo', sql_file = "londiste_undo.sql")
 ]
 
 def install_provider(curs, log):

@@ -232,31 +232,31 @@ end;
 $$ language plpgsql;
 create trigger tg_nop after insert on tgtest for each row execute procedure notg();
 select * from londiste.find_table_triggers('tgtest');
-  table_name   | trigger_name |                                    trigger_def                                     
----------------+--------------+------------------------------------------------------------------------------------
- public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()
+  table_name   | trigger_name |                                    trigger_def                                     | trigger_type 
+---------------+--------------+------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg() | t
 (1 row)
 
 select * from londiste.subscriber_get_table_pending_triggers('tgtest');
- table_name | trigger_name | trigger_def 
-------------+--------------+-------------
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
 (0 rows)
 
-select * from londiste.subscriber_drop_all_table_triggers('tgtest');
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['t']);
  subscriber_drop_all_table_triggers 
 ------------------------------------
                                   1
 (1 row)
 
 select * from londiste.find_table_triggers('tgtest');
- table_name | trigger_name | trigger_def 
-------------+--------------+-------------
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
 (0 rows)
 
 select * from londiste.subscriber_get_table_pending_triggers('tgtest');
- table_name | trigger_name |                                    trigger_def                                     
-------------+--------------+------------------------------------------------------------------------------------
- tgtest     | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()
+ table_name | trigger_name |                                    trigger_def                                     | trigger_type 
+------------+--------------+------------------------------------------------------------------------------------+--------------
+ tgtest     | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg() | t
 (1 row)
 
 select * from londiste.subscriber_restore_all_table_triggers('tgtest');
@@ -266,13 +266,153 @@ select * from londiste.subscriber_restore_all_table_triggers('tgtest');
 (1 row)
 
 select * from londiste.find_table_triggers('tgtest');
-  table_name   | trigger_name |                                    trigger_def                                     
----------------+--------------+------------------------------------------------------------------------------------
- public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()
+  table_name   | trigger_name |                                    trigger_def                                     | trigger_type 
+---------------+--------------+------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg() | t
 (1 row)
 
 select * from londiste.subscriber_get_table_pending_triggers('tgtest');
- table_name | trigger_name | trigger_def 
-------------+--------------+-------------
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
+(0 rows)
+
+-- test constraint triggers
+create constraint trigger tg_nop1 after insert on tgtest deferrable initially deferred for each row execute procedure notg();
+create constraint trigger tg_nop2 after update on tgtest deferrable initially immediate for each row execute procedure notg();
+create constraint trigger tg_nop3 after delete on tgtest not deferrable initially immediate for each row execute procedure notg();
+select * from londiste.find_table_triggers('tgtest');
+  table_name   | trigger_name |                                                            trigger_def                                                            | trigger_type 
+---------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()                                                | t
+ public.tgtest | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ public.tgtest | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ public.tgtest | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+(4 rows)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
+(0 rows)
+
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['t']);
+ subscriber_drop_all_table_triggers 
+------------------------------------
+                                  1
+(1 row)
+
+select * from londiste.find_table_triggers('tgtest');
+  table_name   | trigger_name |                                                            trigger_def                                                            | trigger_type 
+---------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ public.tgtest | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ public.tgtest | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+(3 rows)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name |                                    trigger_def                                     | trigger_type 
+------------+--------------+------------------------------------------------------------------------------------+--------------
+ tgtest     | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg() | t
+(1 row)
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+ subscriber_restore_all_table_triggers 
+---------------------------------------
+                                     1
+(1 row)
+
+select * from londiste.find_table_triggers('tgtest');
+  table_name   | trigger_name |                                                            trigger_def                                                            | trigger_type 
+---------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ public.tgtest | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ public.tgtest | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()                                                | t
+(4 rows)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
+(0 rows)
+
+--
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['c']);
+ subscriber_drop_all_table_triggers 
+------------------------------------
+                                  1
+(1 row)
+
+select * from londiste.find_table_triggers('tgtest');
+  table_name   | trigger_name |                                    trigger_def                                     | trigger_type 
+---------------+--------------+------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg() | t
+(1 row)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name |                                                            trigger_def                                                            | trigger_type 
+------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ tgtest     | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ tgtest     | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ tgtest     | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+(3 rows)
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+ subscriber_restore_all_table_triggers 
+---------------------------------------
+                                     1
+(1 row)
+
+select * from londiste.find_table_triggers('tgtest');
+  table_name   | trigger_name |                                                            trigger_def                                                            | trigger_type 
+---------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()                                                | t
+ public.tgtest | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ public.tgtest | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ public.tgtest | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+(4 rows)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
+(0 rows)
+
+--
+select * from londiste.subscriber_drop_all_table_triggers('tgtest', array['t', 'c']);
+ subscriber_drop_all_table_triggers 
+------------------------------------
+                                  1
+(1 row)
+
+select * from londiste.find_table_triggers('tgtest');
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
+(0 rows)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name |                                                            trigger_def                                                            | trigger_type 
+------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ tgtest     | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()                                                | t
+ tgtest     | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ tgtest     | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ tgtest     | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+(4 rows)
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+ subscriber_restore_all_table_triggers 
+---------------------------------------
+                                     1
+(1 row)
+
+select * from londiste.find_table_triggers('tgtest');
+  table_name   | trigger_name |                                                            trigger_def                                                            | trigger_type 
+---------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------+--------------
+ public.tgtest | tg_nop       | CREATE TRIGGER tg_nop AFTER INSERT ON tgtest FOR EACH ROW EXECUTE PROCEDURE notg()                                                | t
+ public.tgtest | tg_nop1      | CREATE CONSTRAINT TRIGGER tg_nop1 AFTER INSERT ON tgtest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE notg()      | c
+ public.tgtest | tg_nop2      | CREATE CONSTRAINT TRIGGER tg_nop2 AFTER UPDATE ON tgtest DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg()     | c
+ public.tgtest | tg_nop3      | CREATE CONSTRAINT TRIGGER tg_nop3 AFTER DELETE ON tgtest NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE PROCEDURE notg() | c
+(4 rows)
+
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+ table_name | trigger_name | trigger_def | trigger_type 
+------------+--------------+-------------+--------------
 (0 rows)
 

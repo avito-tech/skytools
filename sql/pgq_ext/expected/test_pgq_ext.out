@@ -1,4 +1,4 @@
-\set ECHO off
+\set ECHO none
 --
 -- test batch tracking
 --

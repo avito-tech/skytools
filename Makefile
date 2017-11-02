@@ -98,6 +98,12 @@ deb91:
 	yada rebuild
 	debuild -uc -us -b
 
+deb92:
+	./configure --with-pgconfig=/usr/lib/postgresql/9.2/bin/pg_config --with-python=$(PYTHON)
+	sed -e s/PGVER/9.2/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
+	yada rebuild
+	debuild -uc -us -b
+
 tgz: config.mak clean
 	$(MAKE) -C doc man
 	$(PYTHON) setup.py sdist -t source.cfg -m source.list

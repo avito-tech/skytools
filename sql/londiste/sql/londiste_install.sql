@@ -1,6 +1,6 @@
-\set ECHO off
+\set ECHO none
 set log_error_verbosity = 'terse';
-\i ../txid/txid.sql
+--\i ../txid/txid.sql
 \i ../pgq/pgq.sql
 \i ../logtriga/logtriga.sql
 \i londiste.sql

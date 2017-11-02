@@ -1,4 +1,4 @@
-\set ECHO off
+\set ECHO none
 \i pgq_ext.sql
 \set ECHO all
 

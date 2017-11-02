@@ -22,6 +22,7 @@ class CopyTable(Replicator):
             self.copy_thread = 1
 
     def do_copy(self, tbl_stat):
+        drop_triggers_type = ['c'] # drop only constraint triggers
         src_db = self.get_database('provider_db')
         dst_db = self.get_database('subscriber_db')
 
@@ -46,8 +47,8 @@ class CopyTable(Replicator):
         self.drop_fkeys(dst_db, tbl_stat.name)
 
         # just in case, drop all triggers (in case "subscriber add" was skipped)
-        q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s)"
-        dst_curs.execute(q_triggers, [tbl_stat.name])
+        q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s, %s)"
+        dst_curs.execute(q_triggers, [tbl_stat.name, drop_triggers_type])
 
         # find dst struct
         src_struct = TableStruct(src_curs, tbl_stat.name)

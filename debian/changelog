@@ -1,133 +1,154 @@
-skytools (2.1.13) unstable; urgency=low
+skytools (2.1.13-2) unstable; urgency=low
 
-  * v2.1.13
+  * Add words missing in the londiste description.  Closes: #676649.
+    Spotted by Beatrice Torracca, thanks!
+  * Add 9.2 to supported versions.
 
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 13 Mar 2012 09:30:38 +0200
+ -- Christoph Berg <myon@debian.org>  Tue, 12 Jun 2012 15:58:49 +0200
 
-skytools (2.1.12) unstable; urgency=low
+skytools (2.1.13-1) unstable; urgency=low
 
-  * v2.1.12
+  * New upstream release.
+  * Remove object files in sql/ on clean.
+  * Update watch file to only catch 2.x versions.
 
- -- Marko Kreen <marko.kreen@skype.net>  Wed, 10 Nov 2010 15:23:59 +0200
+ -- Christoph Berg <myon@debian.org>  Tue, 20 Mar 2012 16:18:54 +0100
 
-skytools (2.1.12rc2) unstable; urgency=low
+skytools (2.1.12-6) unstable; urgency=low
 
-  * v2.1.12rc2
+  * 2.1 is on community support and doesn't release anymore. Import
+    changes from tag skytools_2_1_12 to branch skytools_2_1_stable from
+    upstream git.
+    + Bugfix psycopgwrapper connect_database() to open a cursor before using
+      it
+    + Synch walmgr changes from 3.0 branch.
+    + Add support for detecting stale locks and releasing them instead of
+      aborting
+    + Move the pg_stop_backup() into a finally: block.
+    + londiste add-table: make trigger check sql 9.1-compatible
+    + pgq.insert_event: Fix rare crash
+    + pgq.triggers: Fix potential rare crash.
+    + pgq: fix unnecessary failures in regtests
+  * Remove \i txid.sql from regression tests so they run through.
+    Additionally, the server config needs bytea_output = 'escape'.
 
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 05 Oct 2010 11:43:38 +0300
+ -- Christoph Berg <myon@debian.org>  Fri, 16 Dec 2011 11:23:55 +0100
 
-skytools (2.1.12rc1) unstable; urgency=low
+skytools (2.1.12-5) unstable; urgency=low
 
-  * v2.1.12rc1
+  * Fix 9.1 build.  Closes: #646666
+  * Add 8.2 and 8.3 to supported versions.
 
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 21 Sep 2010 07:26:22 -0700
+ -- Christoph Berg <myon@debian.org>  Sat, 05 Nov 2011 20:06:50 +0100
 
-skytools (2.1.11) unstable; urgency=low
+skytools (2.1.12-4) unstable; urgency=low
 
-  * v2.1.11
+  * Support building for all available PostgreSQL versions. Thanks to
+    Dimitri Fontaine for the patch!
 
- -- Marko Kreen <marko.kreen@skype.net>  Wed, 03 Feb 2010 18:28:57 +0200
+ -- Christoph Berg <myon@debian.org>  Thu, 08 Sep 2011 11:15:25 +0200
 
-skytools (2.1.11rc1) unstable; urgency=low
+skytools (2.1.12-3) unstable; urgency=low
 
-  * v2.1.11rc1
+  * Rebuild for PostgreSQL 9.1.
 
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 30 Oct 2009 18:05:58 +0200
+ -- Christoph Berg <myon@debian.org>  Wed, 24 Aug 2011 11:13:04 +0200
 
-skytools (2.1.10) unstable; urgency=low
+skytools (2.1.12-2) unstable; urgency=low
 
-  * v2.1.10
+  * Section: database.
+  * Make londiste scriptmgr queue_mover queue_splitter walmgr "alternatives"
+    to cooperate with the skytools3 package.
+  * Conflicts/Replaces: postgresql-PGVERSION-pgq3, also for skytools3.
 
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 31 Aug 2009 16:44:53 +0300
+ -- Christoph Berg <myon@debian.org>  Fri, 01 Apr 2011 10:07:59 +0200
 
-skytools (2.1.10rc1) unstable; urgency=low
+skytools (2.1.12-1) unstable; urgency=low
 
-  * v2.1.10rc1
+  * New maintainer.
+  * Include NMU changes by Sandro Tosi, thanks!
+  * New upstream version. Closes: #604711
+  * Convert to dh 7 and 3.0 (quilt).
+  * Support building for multiple postgresql versions in parallel, add 9.0
+    package.
+  * Improve descriptions a bit. Closes: #569991
 
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 17 Aug 2009 15:52:16 +0300
+ -- Christoph Berg <myon@debian.org>  Wed, 30 Mar 2011 16:21:31 +0200
 
-skytools (2.1.9) unstable; urgency=low
+skytools (2.1.10-1) unstable; urgency=low
 
-  * v2.1.9
+  * New update release.
+  * Change dependency build to PostgreSQL 8.4. (Closes: #559606) 
 
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 13 Mar 2009 15:39:18 +0200
+ -- Fernando Ike de Oliveira <fike@midstorm.org>  Tue, 15 Dec 2009 18:41:17 -0200
 
-skytools (2.1.9rc1) unstable; urgency=low
+skytools (2.1.8-2.2) unstable; urgency=low
 
-  * v2.1.9rc1
+  * Non-maintainer upload.
+  * debian/{control, rules}
+    - use pysupport to manage the Python module, so also compiling it; thanks to
+      Luca Falavigna for the report; Closes: #566047
+  * debian/{control, rules, *.links, *.install}
+    - support only PostgreSQL 8.4; thanks to Martin Pitt for the report;
+      Closes: #559606
+  * debian/rules
+    - added simple-patchsys.mk rule
+    - added python-distutils.mk class
+  * debian/patches/missing_includes.diff
+    - added missing includes, fixing the FTBFS with PostgreSQL 8.4
+  * skytools.install
+    - don't hardcode 'python2.5' and 'site-package', use globbing instead
+  * patches/rename_as_for_python2.6.diff
+    - added to replace 'as', since it's a reserved word in Python 2.6; thanks to
+      Fabrice Coutadeur for the report; Closes: #535144
+  * debian/skytools-modules-8.4.install
+    - added installation of files from 'debian/tmp/usr/share/skytools' needed
+      for the module to look for SQL files; thanks to Marc Cousin for the
+      report and Chris Lamb for the patch; Closes: #534310
+  * debian/control
+    - replaced explicit Depends on 'python' with substvar ${python:Depends}
+    - build-depends on python-all-dev, to be built against all support Python
 
- -- Marko Kreen <marko.kreen@skype.net>  Thu, 26 Feb 2009 14:50:49 +0200
+ -- Sandro Tosi <morph@debian.org>  Sat, 13 Feb 2010 10:46:11 +0100
 
-skytools (2.1.8) unstable; urgency=low
+skytools (2.1.8-2.1) unstable; urgency=medium
 
-  * v2.1.8
+  * Non-maintainer upload.
+  * Specify PG_CONFIG directly so that paths relating to Postgres 8.4 are not
+    returned, preventing a FTBFS. (Closes: #536906)
 
- -- Marko Kreen <marko.kreen@skype.net>  Sun, 12 Oct 2008 13:29:09 +0300
+ -- Chris Lamb <lamby@debian.org>  Tue, 11 Aug 2009 08:20:10 +0100
 
-skytools (2.1.8rc1) unstable; urgency=low
+skytools (2.1.8-2) unstable; urgency=low
 
-  * v2.1.8rc1
+  * Dependency changes psycopg to psycopg2, because psycopg isn't support 
+    upstream. (Closes: #518223)
+  * Added README.source
 
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 22 Sep 2008 16:31:27 +0300
+ -- Fernando Ike de Oliveira <fike@midstorm.org>  Wed, 04 Mar 2009 18:39:29 -0300
 
-skytools (2.1.7) unstable; urgency=low
+skytools (2.1.8-1) unstable; urgency=low
 
-  * v2.1.7
+  * New upstream release. 
 
- -- Marko Kreen <marko.kreen@skype.net>  Wed, 28 May 2008 17:04:32 +0300
+ -- Fernando Ike de Oliveira <fike@midstorm.org>  Fri, 09 Jan 2009 15:17:14 -0200
 
-skytools (2.1.6) unstable; urgency=low
+skytools (2.1.7-1) unstable; urgency=low
 
-  * Final release
+  * New upstream release
+  * Fixed itens relationship bug #479685: (Closes: #479685)
+    + Added manpage of bulk_loader, cube_dispatcher, londsite, pgqadm,
+      queue_mover, queue_splitter, scriptmgr, skytools_upgrade, table_dispacher
+      and walmgr.
+    + Added NEWS and README.
+    + Better written field short description to skytools-modules and 
+      skytools in the control file.
+    + Better written field long description to skytools-modules and skytools.
 
- -- Marko Kreen <marko.kreen@skype.net>  Sat, 05 Apr 2008 16:45:11 +0300
+ -- Fernando Ike de Oliveira <fike@midstorm.org>  Sat, 07 Jun 2008 20:39:15 -0300
 
-skytools (2.1.6rc3) unstable; urgency=low
+skytools (2.1.6-1) unstable; urgency=low
 
-  * quoting/parsing fixes
-  ? walmgr fix
+  * Initial release. (Closes: #427871)
 
- -- Marko Kreen <marko.kreen@skype.net>  Wed, 12 Mar 2008 15:43:39 +0200
-
-skytools (2.1.6rc2) unstable; urgency=low
-
-  * Bugfix release.
-
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 07 Dec 2007 16:12:27 +0200
-
-skytools (2.1.5) unstable; urgency=low
-
-  * New public release.
-
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 19 Nov 2007 15:32:41 +0200
-
-skytools (2.1.4) unstable; urgency=low
-
-  * Upgrade walmgr, some fixes.
-
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 13 Apr 2007 11:08:41 +0300
-
-skytools (2.1.3) unstable; urgency=low
-
-  * brown paper bag
-
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 10 Apr 2007 11:55:47 +0300
-
-skytools (2.1.2) unstable; urgency=low
-
-  * more bugfixes
-
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 09 Apr 2007 17:56:35 +0300
-
-skytools (2.1.1) unstable; urgency=low
-
-  * bugfixes
-
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 03 Apr 2007 15:03:28 +0300
-
-skytools (2.1) unstable; urgency=low
-
-  * cleanup
-
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 02 Feb 2007 12:38:17 +0200
-
+ -- Fernando Ike de Oliveira <fike@midstorm.org>  Fri, 27 Jul 2007 04:00:06 -0300

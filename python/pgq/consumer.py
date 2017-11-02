@@ -388,6 +388,10 @@ class SerialConsumer(Consumer):
                 help = "change queue position according to destination")
         p.add_option("--reset", action = "store_true",
                 help = "reset queue pos on destination side")
+        p.add_option("--enable-undolog", action = "store_true", dest = "enable_undolog",
+                help = "generate UNDO log", default = False)
+        p.add_option("--force", action = "store_true",
+                help = "force", default = False)
         return p
 
     def process_batch(self, db, batch_id, event_list):
@@ -467,8 +471,8 @@ class SerialConsumer(Consumer):
 
         dst_tick = self.get_last_tick(dst_curs)
         if dst_tick:
-            q = "select pgq.register_consumer_at(%s, %s, %s)"
-            src_curs.execute(q, [self.pgq_queue_name, self.consumer_id, dst_tick])
+            q = "select pgq.register_consumer(%s, %s, %s, %s)"
+            src_curs.execute(q, [self.pgq_queue_name, self.consumer_id, dst_tick, self.options.force])
         else:
             self.log.warning('No tick found on dst side')
 

@@ -1,7 +1,7 @@
 
 include ../config.mak
 
-SUBDIRS = logtriga londiste pgq pgq_ext txid
+SUBDIRS = logtriga londiste londiste_undo pgq pgq_ext txid
 
 all install clean distclean installcheck:
 	for dir in $(SUBDIRS); do \

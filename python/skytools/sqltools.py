@@ -8,10 +8,11 @@ import skytools.installer_config
 
 __all__ = [
     "fq_name_parts", "fq_name", "get_table_oid", "get_table_pkeys",
-    "get_table_columns", "exists_schema", "exists_table", "exists_type",
-    "exists_function", "exists_language", "Snapshot", "magic_insert",
-    "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
-    "DBLanguage", "db_install", "installer_find_file", "installer_apply_file",
+    "get_table_columns", "exists_schema", "exists_table", "exists_undo_trigger",
+    "exists_type", "exists_function", "exists_language", "Snapshot",
+    "magic_insert", "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable",
+    "DBFunction", "DBLanguage", "db_install", "installer_find_file",
+    "installer_apply_file",
 ]
 
 
@@ -80,6 +81,16 @@ def exists_table(curs, table_name):
     q = """select count(1) from pg_namespace n, pg_class c
            where c.relnamespace = n.oid and c.relkind = 'r'
              and n.nspname = %s and c.relname = %s"""
+    curs.execute(q, [schema, name])
+    res = curs.fetchone()
+    return res[0]
+
+def exists_undo_trigger(curs, table_name):
+    schema, name = fq_name_parts(table_name)
+    q = """select count(1) from londiste_undo.triggers tr
+           where tr.dst_schema = %s
+             and tr.dst_table = %s
+             and tr.is_active"""
     curs.execute(q, [schema, name])
     res = curs.fetchone()
     return res[0]
@@ -245,7 +256,7 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
 class CopyPipe(object):
     "Splits one big COPY to chunks."
 
-    def __init__(self, dstcurs, tablename = None, limit = 512*1024, cancel_func=None, sql_from = None):
+    def __init__(self, dstcurs, tablename = None, limit = 512*1024*1024, cancel_func=None, sql_from = None):
         self.tablename = tablename
         self.sql_from = sql_from
         self.dstcurs = dstcurs
